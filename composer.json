@@ -19,6 +19,9 @@
     "autoload": {
         "psr-4": {
             "ZM\\Requests\\": "src/ZM/Requests"
-        }
+        },
+        "files": [
+            "src/ZM/Requests/global_functions.php"
+        ]
     }
 }
