@@ -21,8 +21,10 @@ class ZMWebSocket
 
     private $close_func;
     private $message_func;
+    private $open_func;
 
-    public function __construct($url, $set = ['websocket_mask' => true], $header = []) {
+    public function __construct($url, $set = ['websocket_mask' => true], $header = [])
+    {
         $this->parse = parse_url($url);
         if (!isset($this->parse["host"])) {
             ZMRequest::$last_error = ("ZMRequest: url must contains scheme such as \"ws(s)://\"");
@@ -39,11 +41,13 @@ class ZMWebSocket
     /**
      * @return bool
      */
-    public function upgrade() {
+    public function upgrade()
+    {
         if (!$this->is_available) return false;
         $r = $this->client->upgrade($this->parse["path"] . (isset($this->parse["query"]) ? ("?" . $this->parse["query"]) : ""));
         if ($r) {
             go(function () {
+                call_user_func($this->open_func, $this->client);
                 while (true) {
                     $result = $this->client->recv(60);
                     if ($result === false) {
@@ -53,7 +57,7 @@ class ZMWebSocket
                             });
                             break;
                         }
-                    } elseif ($result instanceof Frame) {
+                    } else if ($result instanceof Frame) {
                         go(function () use ($result) {
                             $this->is_available = false;
                             call_user_func($this->message_func, $result, $this->client);
@@ -70,7 +74,18 @@ class ZMWebSocket
      * @param callable $callable
      * @return ZMWebSocket
      */
-    public function onMessage(callable $callable) {
+    public function onOpen(callable $callable)
+    {
+        $this->open_func = $callable;
+        return $this;
+    }
+
+    /**
+     * @param callable $callable
+     * @return ZMWebSocket
+     */
+    public function onMessage(callable $callable)
+    {
         $this->message_func = $callable;
         return $this;
     }
@@ -79,7 +94,8 @@ class ZMWebSocket
      * @param callable $callable
      * @return $this
      */
-    public function onClose(callable $callable) {
+    public function onClose(callable $callable)
+    {
         $this->close_func = $callable;
         return $this;
     }
